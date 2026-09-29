@@ -1,0 +1,32 @@
+services:
+  app:
+    build:
+      context: .
+      target: base
+    image: thermal-audit:latest
+    # 应用端口完全由宿主机环境变量 APP_PORT 配置（容器内监听与宿主发布一致，默认 8000）
+    # 例：APP_PORT=9090 docker compose up -d  →  http://localhost:9090
+    ports:
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+    environment:
+      APP_PORT: "${APP_PORT:-8000}"
+    restart: unless-stopped
+    # 健康检查继承自 Dockerfile（按 APP_PORT 轮询 /healthz）
+
+  # 一次性校验服务：等 app 健康检查通过后启动，顺序执行
+  #   1) pytest 后端代码测试
+  #   2) vite 前端生产构建
+  #   3) 温控审计 API 冒烟
+  # 完成后自行退出，退出码即校验结果（0 成功，非零失败）。
+  verify:
+    build:
+      context: .
+      target: verify
+    image: thermal-audit-verify:latest
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      APP_PORT: "${APP_PORT:-8000}"
+      AUDIT_BASE_URL: "http://app:${APP_PORT:-8000}"
+    restart: "no"
