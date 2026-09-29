@@ -1,0 +1,10 @@
+.git
+.venv
+venv
+.npm-cache
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+**/dist
+.DS_Store
+.env
